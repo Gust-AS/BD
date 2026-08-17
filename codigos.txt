@@ -1,0 +1,4 @@
+docker ps
+docker ps -a
+docker compose up -d
+ls
