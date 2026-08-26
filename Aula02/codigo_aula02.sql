@@ -1,4 +1,4 @@
--- Active: 1787609643708@@127.0.0.1@5432@bd_aula@public
+-- Active: 1787700822576@@127.0.0.1@5432@bd_aula@public
 DROP TABLE IF EXISTS notas_alunos;
 
 CREATE TABLE notas_alunos(
@@ -137,3 +137,22 @@ FROM
     notas_alunos
 GROUP BY
     disciplina;
+
+SELECT 
+    disciplina,
+    COUNT (*) AS "Avaliacao",
+    AVG (nota) AS "Media"
+FROM
+    notas_alunos
+GROUP BY
+    disciplina;
+
+
+SELECT 
+    disciplina,
+    COUNT (*) AS "Avaliacao",
+    ROUND (AVG (nota), 2) AS "Media"
+FROM
+    notas_alunos
+GROUP BY
+    disciplina; 
