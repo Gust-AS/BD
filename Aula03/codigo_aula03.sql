@@ -1,4 +1,4 @@
--- Active: 1787700822576@@127.0.0.1@5432@bd_vendas@public
+-- Active: 1788306668118@@127.0.0.1@5432@bd_vendas@public
 DROP TABLE IF EXISTS vendas_itens;
 
 CREATE TABLE vendas_itens(
@@ -122,4 +122,203 @@ FROM
 WHERE   
     venda_id = 2010;
 
-    
+--precedencias entre AND e OR
+SELECT
+    venda_id,
+    produto_id,
+    valor_unitario,
+    data_venda
+FROM
+    vendas_itens
+WHERE
+    data_venda = '2025-09-01' OR data_venda = '2025-09-02' AND valor_unitario > 100;
+
+SELECT
+    venda_id,
+    produto_id,
+    valor_unitario,
+    data_venda
+FROM
+    vendas_itens
+WHERE
+    (data_venda = '2025-09-01' OR data_venda = '2025-09-02') AND valor_unitario > 100;
+
+
+SELECT
+    venda_id,
+    produto_id,
+    valor_unitario,
+    data_venda
+FROM
+    vendas_itens
+WHERE
+    --valor_unitario >= 50 AND valor_unitario <=100;
+    valor_unitario BETWEEN 50 AND 100
+ORDER BY
+    valor_unitario DESC;
+
+
+SELECT
+    venda_id,
+    produto_id,
+    valor_unitario,
+    data_venda
+FROM
+    vendas_itens
+WHERE
+    --valor_unitario >= 50 AND valor_unitario <=100;
+    valor_unitario NOT BETWEEN 50 AND 100
+ORDER BY
+    valor_unitario DESC;
+
+
+SELECT
+    venda_id,
+    produto_id,
+    valor_unitario,
+    data_venda
+FROM
+    vendas_itens
+WHERE
+    produto_id IN (1,3,6)
+ORDER BY
+    produto_id;
+
+SELECT
+    venda_id,
+    produto_id,
+    valor_unitario,
+    data_venda
+FROM
+    vendas_itens
+WHERE
+    produto_id IN (1,3,6)
+    --AND (data_venda = '2025-09-01' OR data_venda = '2025-09-10');
+    AND (data_venda IN ('2025-09-01', '2025-09-10'));
+
+SELECT
+    venda_id,
+    produto_id,
+    observacao
+FROM
+    vendas_itens
+WHERE
+    -- % Qualquer sequência de caracteres
+    -- _ Exatamente um caractere, qualquer que seja
+    --observacao LIKE 'Entrega%'
+    --observacao LIKE '%loja%'
+    --observacao LIKE '_ntrega ex%'
+    --observacao LIKE 'entrega%'
+    observacao NOT LIKE 'Entrega%';
+
+
+SELECT
+    venda_id,
+    observacao
+FROM
+    vendas_itens
+WHERE
+    observacao NOT IN ('Entrega expressa')
+    OR observacao IS NULL;
+
+SELECT
+    venda_id,
+    produto_id,
+    COALESCE(observacao, 'sem observacao') AS "observação"
+FROM
+    vendas_itens
+WHERE
+    venda_id = 2001;
+
+
+SELECT DISTINCT
+    produto_id
+
+FROM
+    vendas_itens
+ORDER BY
+    produto_id;
+
+SELECT
+    venda_id,
+    produto_id,
+    valor_unitario
+FROM
+    vendas_itens
+ORDER BY
+    valor_unitario DESC,
+    venda_id ASC,
+    produto_id;
+
+SELECT
+    venda_id,
+    observacao
+FROM
+    vendas_itens
+ORDER BY
+    observacao ASC NULLS FIRST;
+
+
+SELECT
+    venda_id AS "ID",
+    produto_id,
+    valor_unitario
+FROM
+    vendas_itens
+ORDER BY
+    valor_unitario DESC,
+    venda_id ASC,
+    produto_id ASC
+LIMIT 5 OFFSET 1;
+
+
+SELECT
+    COUNT(*) AS itens,
+    COUNT(observacao) AS itens_com_observacao,
+    COUNT(DISTINCT venda_id) AS vendas,
+    COUNT(DISTINCT produto_id) AS produtos, 
+    SUM(valor_unitario) AS soma,
+    ROUND(AVG(valor_unitario)) AS "media",
+    MIN(valor_unitario) AS menor_valor_unitario,
+    MAX(valor_unitario) AS maior_valor_unitario
+FROM
+    vendas_itens;
+
+SELECT
+    venda_id,
+    SUM (valor_unitario) AS valor_total,
+    data_venda
+FROM
+    vendas_itens
+GROUP BY
+    venda_id,
+    data_venda
+ORDER BY
+    valor_total ASC;
+
+
+SELECT
+    produto_id,
+    SUM (valor_unitario) AS valor_final,
+    COUNT(*) AS vezes_vendido
+FROM
+    vendas_itens
+GROUP BY
+    produto_id
+ORDER BY
+    valor_final DESC,
+    vezes_vendido DESC;
+
+SELECT
+    venda_id,
+    SUM(valor_unitario) AS valor_total,
+    COUNT(*) AS itens
+FROM
+    vendas_itens
+GROUP BY
+    venda_id
+HAVING
+    SUM(valor_unitario) > 400
+ORDER BY
+    valor_total DESC;
+
