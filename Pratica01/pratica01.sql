@@ -1,4 +1,4 @@
--- Active: 1789423085793@@127.0.0.1@5432@bd_hortifruti@public
+-- Active: 1789472963673@@127.0.0.1@5432@bd_hortifruti@public
 -- CREATE DATABASE;
 DROP TABLE IF EXISTS itens_venda;
 
@@ -79,8 +79,9 @@ INSERT INTO itens_venda (venda_id, data_venda, bairro_entrega, produto_id, produ
 
 SELECT * FROM itens_venda;
 
---Questão01
-SELECT
+--CONSULTAS
+--Consulta 01
+SELECT DISTINCT
 produto_id,
 produto_nome,
 categoria,
@@ -91,7 +92,7 @@ ORDER BY
 categoria DESC, produto_nome DESC;
 
 
---Questão 02
+--Consulta 02
 SELECT
 venda_id,
 produto_nome,
@@ -101,9 +102,12 @@ FROM
 itens_venda
 WHERE
 categoria IN ('Legume','Verdura') 
-AND (valor_unitario NOT BETWEEN 3.00 AND 5.00);
+AND valor_unitario BETWEEN 3.00 AND 5.00
+ORDER BY
+valor_unitario DESC, venda_id ASC;
 
---Questão 03
+
+--Consulta 03
 SELECT
 venda_id,
 data_venda,
@@ -116,7 +120,8 @@ produto_nome = 'Batata'
 ORDER BY
 data_venda ASC, venda_id ASC;
 
---Questão 04
+
+--Consulta 04
 SELECT DISTINCT
 venda_id,
 data_venda,
@@ -124,9 +129,12 @@ bairro_entrega
 FROM
 itens_venda
 WHERE
-bairro_entrega IS NOT NULL;
+bairro_entrega IS NOT NULL
+ORDER BY
+venda_id ASC;
 
---Questão 05
+
+--Consulta 05
 SELECT
 venda_id,
 produto_nome,
@@ -137,20 +145,145 @@ ROUND (quantidade * valor_unitario,2)  AS valor_item
 FROM
 itens_venda
 ORDER BY
-valor_item DESC;
+valor_item DESC, venda_id ASC;
 
---Questão 06
 
---Questão 07
+--Consulta 06
+SELECT
+venda_id,
+data_venda,
+COALESCE(bairro_entrega,'Retirada no balcao') AS destino,
+COUNT(*) AS itens,
+ROUND(SUM(quantidade * valor_unitario),2) AS valor_total
+FROM
+itens_venda
+GROUP BY
+venda_id,
+data_venda,
+bairro_entrega
+ORDER BY
+valor_total DESC;
 
---Questão 08
 
---Questão 09
+--Consulta 07
+SELECT 
+    data_venda,
+    COUNT(DISTINCT venda_id) AS vendas,
+    COUNT(*) AS itens,
+    ROUND(SUM(quantidade * valor_unitario),2) AS faturamento
+FROM
+itens_venda
+GROUP BY
+data_venda
+ORDER BY
+data_venda ASC;
 
---Questão 10
 
---Questão 11
+--Consulta 08
+SELECT
+produto_nome,
+produto_id,
+unidade,
+SUM(quantidade) AS qtd_total,
+ROUND(SUM(quantidade * valor_unitario), 2) AS faturamento,
+ROUND(AVG(valor_unitario),2) AS media_simples,
+ROUND(SUM(quantidade*valor_unitario)/ SUM(quantidade),2) AS media_ponderada
+FROM
+itens_venda
+GROUP BY
+produto_id,
+produto_nome,
+unidade
+ORDER BY
+faturamento DESC;
 
+
+--Consulta 09
+SELECT
+categoria,
+COUNT(*) AS itens,
+SUM(quantidade) AS qtd_total,
+ROUND(SUM(quantidade * valor_unitario), 2) AS faturamento
+FROM
+itens_venda
+GROUP BY
+categoria,
+unidade
+ORDER BY
+categoria ASC;
+
+
+--Consulta 10
+SELECT
+bairro_entrega,
+COUNT(DISTINCT venda_id) AS entregas,
+ROUND(SUM(quantidade*valor_unitario),2) AS faturamento
+FROM
+itens_venda
+WHERE
+bairro_entrega IS NOT NULL
+GROUP BY
+bairro_entrega
+HAVING
+SUM(quantidade*valor_unitario) > 40.00
+ORDER BY
+faturamento DESC;
+
+
+--Consulta 11
+SELECT
+venda_id,
+ROUND(SUM(quantidade * valor_unitario), 2) AS total_arredondado,
+SUM(ROUND(quantidade * valor_unitario, 2)) AS soma_dos_itens_arredondados
+FROM
+itens_venda
+GROUP BY
+venda_id
+HAVING
+ROUND(SUM(quantidade * valor_unitario),2)<>SUM(ROUND(quantidade*valor_unitario,2))
+ORDER BY
+venda_id ASC;
+
+
+/*
+//////////////////////////////////////////ANÁLISE DO MODELO DE TABELA//////////////////////////////////////////
+---------------------------------------------------------------------------------------------------------------
+QUESTÃO 01 - Indicar quais colunas da tabela itens_venda repetem, em várias linhas, um fato que pertence 
+apenas à venda, e quais repetem um fato que pertence apenas ao produto (aula prática 04, seção 2.4). Explicar
+por que valor_unitario, que também se repete, não está na mesma situação, e descrever o que aconteceria
+nas consultas 1 e 8 se o nome de um produto fosse alterado em somente algumas das linhas em que aparece.
+
+RESPOSTA: -Colunas que repetem fatos sobre a venda = 'data_venda' e 'bairro_entrega'.
+          -Colunas que repetem fatos sobre o produto = 'produto_nome', 'categoria' e 'unidade'.
+          -Porque valor unitario não esta na mesma situação = O mesmo não esta no mesmo caso dos outros fatos 
+           pois ele varia o valor de acordo com o tempo.
+          -Consultas 1 e 8 = No caso da consulta 01 se o nome produto fosse escrito de formas diferentes 
+           (ex: TOMATE e Tomate) o 'SELECT DISTINCT' vai enxergar as varives como nomes de produtos distintos. 
+           Ja no caso do caso 08 ele criaria varios grupos diferentes o que geraria uma 'media_ponderada' e 
+           'media_simples' incorreta.
+
+---------------------------------------------------------------------------------------------------------------
+QUESTÃO 02 - Citar duas regras do minimundo que a tabela criada não garante, isto é, regras enunciadas e não
+declaradas. Para uma delas, escrever, sem executar, um INSERT que o SGBD aceitaria e que viola a regra.
+
+RESPOSTA: -Na regra 04 e dito que um produto é vendido sempre na mesma unidade de medida, mas um produto id em
+           expecifico pode ser alterado e vendido tanto em 'Kg' quanto em 'UN'.
+          -Na regra 06 indica que cada produto aparece no máximo uma vez a cada venda, mas se o nome do produto
+           possuir uma variação o mesmo pode aparecer mais de uma vez (ex: BATATA e batata).
+
+---------------------------------------------------------------------------------------------------------------
+QUESTÃO 03 - Com base no resultado da Consulta 8, explicar por que a média ponderada do morango é menor que
+a média simples, por que a do abacaxi é maior, e por que as duas médias do cheiro-verde são iguais.
+
+RESPOSTA: seguindo o resultado da consulta 8, a diferença dos resustados entre a media simples e a media ponderada se 
+          da já que no caso da media simples e utilizado apenas o valor unitario em quantos a media ponderada utiliza 
+          a quantidade juntamento com o valor unitario. O morango possui a media simples mais alta ja que sua venda 
+          foi mais baixa em relação ao valor unitario, já no abacaxi ocrreu o contrario, as vendas foram maiores quando 
+          o valor unitario maior o que ocasionou em uma media ponderada mais alta. No caso do cheiro-verde ambos deram 
+          o mesmo resultado, pois o preço não mudou ao decorrer do tempo.
+
+---------------------------------------------------------------------------------------------------------------
+*/
 
 
 
