@@ -1,4 +1,4 @@
--- Active: 1789472963673@@127.0.0.1@5432@bd_hortifruti@public
+-- Active: 1789646138947@@127.0.0.1@5432@bd_hortifruti@public
 -- CREATE DATABASE;
 DROP TABLE IF EXISTS itens_venda;
 
