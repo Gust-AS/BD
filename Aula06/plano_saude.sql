@@ -1,4 +1,5 @@
--- Active: 1792540788206@@127.0.0.1@5432@bd_plano_saude@public
+-- Active: 1793145462880@@127.0.0.1@5432@bd_plano_saude@public
+-- Recomeco: primeiro o que depende, depois o que e referenciado
 DROP TABLE IF EXISTS planilha_atendimento;
 DROP VIEW  IF EXISTS vw_dependente;
 DROP VIEW  IF EXISTS vw_consulta;
@@ -12,6 +13,7 @@ DROP TABLE IF EXISTS especialidade;
 DROP TABLE IF EXISTS convenio;
 DROP TABLE IF EXISTS pessoa;
 
+-- Regra 1. O endereco composto vira quatro colunas
 CREATE TABLE pessoa (
     id              INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     nome            TEXT    NOT NULL,
@@ -23,34 +25,41 @@ CREATE TABLE pessoa (
     cidade          TEXT    NOT NULL
 );
 
+-- Regra 2. Uma linha por telefone
 CREATE TABLE telefone (
     pessoa_id INTEGER NOT NULL REFERENCES pessoa (id),
     numero    TEXT    NOT NULL,
     PRIMARY KEY (pessoa_id, numero)
 );
 
+-- Regra 5
 CREATE TABLE especialidade (
     id   INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     nome TEXT    NOT NULL UNIQUE
 );
 
+-- Regra 6
 CREATE TABLE convenio (
     id   INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     nome TEXT    NOT NULL UNIQUE
 );
 
+
+-- Regras 3 e 4. A chave primaria e tambem chave estrangeira para pessoa
 CREATE TABLE paciente (
     pessoa_id     INTEGER PRIMARY KEY REFERENCES pessoa (id),
     data_cadastro DATE    NOT NULL,
     titular_id    INTEGER REFERENCES paciente (pessoa_id)
 );
 
+-- Regras 3 e 5
 CREATE TABLE medico (
     pessoa_id        INTEGER PRIMARY KEY REFERENCES pessoa (id),
     crm              TEXT    NOT NULL UNIQUE,
     especialidade_id INTEGER NOT NULL REFERENCES especialidade (id)
 );
 
+-- Regra 6. Uma linha por par de medico e convenio
 CREATE TABLE credenciamento (
     medico_id   INTEGER NOT NULL REFERENCES medico (pessoa_id),
     convenio_id INTEGER NOT NULL REFERENCES convenio (id),
@@ -58,6 +67,7 @@ CREATE TABLE credenciamento (
     PRIMARY KEY (medico_id, convenio_id)
 );
 
+-- Regra 7
 CREATE TABLE consulta (
     id            INTEGER       GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     paciente_id   INTEGER       NOT NULL REFERENCES paciente (pessoa_id),
@@ -67,6 +77,7 @@ CREATE TABLE consulta (
     valor         NUMERIC(10,2) NOT NULL CHECK (valor > 0)
 );
 
+-- Regra 8. A chave da proprietaria mais a chave parcial
 CREATE TABLE exame_solicitado (
     consulta_id INTEGER NOT NULL REFERENCES consulta (id) ON DELETE CASCADE,
     numero      INTEGER NOT NULL,
@@ -116,6 +127,7 @@ INSERT INTO convenio (nome)
 VALUES
     ('Vida Plena'), ('Bem Viver'), ('Amparo Saúde'), ('Nova Saúde');
 
+
 INSERT INTO paciente (pessoa_id, data_cadastro, titular_id)
 VALUES
     ( 1, '2026-01-10', NULL), ( 2, '2026-01-15', NULL), ( 3, '2026-02-01', NULL),
@@ -164,4 +176,140 @@ VALUES
     ( 1, 1, 'Eletrocardiograma'),     ( 1, 2, 'Hemograma'),             ( 3, 1, 'Hemograma'),
     ( 4, 1, 'Radiografia da coluna'), ( 7, 1, 'Radiografia do joelho'), (14, 1, 'Ressonância do joelho'),
     (14, 2, 'Hemograma'),             (18, 1, 'Ecocardiograma');
-    
+
+
+
+SELECT
+    *
+FROM
+    pessoa;
+
+
+SELECT
+    *
+FROM
+    medico;
+
+SELECT
+    pe.nome,
+    pa.data_cadastro,
+    DATE_PART('year', AGE(CURRENT_DATE, pe.data_nascimento)) as idade
+FROM
+        paciente AS pa
+    INNER JOIN
+        pessoa AS pe
+    ON pe.id = pa.pessoa_id
+ORDER BY
+    idade;
+
+-- pe.nome, m.crm, e.nome AS especialidade
+SELECT
+    pe.nome,
+    m.crm,
+    e.nome AS especialidade
+FROM
+    pessoa AS pe
+    INNER JOIN medico AS m ON m.pessoa_id = pe.id
+    INNER JOIN especialidade AS e ON e.id = m.especialidade_id;
+
+SELECT
+    pe.id,
+    pe.nome,
+    pa.titular_id
+FROM
+    paciente AS pa INNER JOIN pessoa AS pe ON pe.id = pa.pessoa_id
+WHERE
+    pa.titular_id IS NOT NULL;
+
+
+SELECT
+    pet.id,
+    pet.nome
+FROM
+    paciente AS pat INNER JOIN pessoa AS pet ON pet.id = pat.titular_id;
+
+
+SELECT
+    ped.nome AS dependete,
+    pet.nome AS titular
+FROM
+    paciente AS pad INNER JOIN pessoa AS ped ON ped.id = pad.pessoa_id
+    INNER JOIN paciente AS pat ON pad.pessoa_id = pat.titular_id
+    INNER JOIN pessoa AS pet ON pat.pessoa_id = pet.id;
+
+
+
+
+-- INNER JOIN
+SELECT
+    c.id AS consulta,
+    cv.nome AS convenio,
+    cv.id
+FROM
+    consulta AS c INNER JOIN convenio AS cv ON cv.id = c.convenio_id;
+
+--LEFT JOIN
+SELECT
+    c.id AS consulta,
+    cv.nome AS convenio,
+    cv.id
+FROM
+    consulta AS c LEFT JOIN convenio AS cv ON cv.id = c.convenio_id;
+
+--RIGHT JOIN
+SELECT
+    c.id AS consulta,
+    cv.nome AS convenio,
+    cv.id
+FROM
+    consulta AS c RIGHT JOIN convenio AS cv ON cv.id = c.convenio_id;
+
+--FULL JOIN
+SELECT
+    c.id AS consulta,
+    cv.nome AS convenio,
+    cv.id
+FROM
+    consulta AS c FULL JOIN convenio AS cv ON cv.id = c.convenio_id;
+
+--CROSS JOIN
+SELECT
+    c.id AS consuta,
+    cv.nome AS convenio,
+    c.convenio_id
+FROM
+    consulta AS c CROSS JOIN convenio AS cv;
+
+
+SELECT
+    ROUND(AVG(valor),2) AS media
+FROM
+    consulta;
+
+SELECT
+    c.id,
+    c.data_consulta,
+    c.valor
+FROM
+    consulta AS c
+WHERE
+    c.valor > (SELECT AVG(valor) FROM consulta);
+
+
+
+SELECT
+    paciente_id
+FROM
+    consulta
+WHERE
+    convenio_id IS NULL;
+
+SELECT
+    pe.id,
+    pe.nome
+FROM
+    pessoa AS pe
+WHERE
+   pe.id IN (SELECT paciente_id FROM consulta WHERE convenio_id IS NULL)
+ORDER BY
+    pe.nome;
